@@ -14,10 +14,19 @@
   "contributes": {
     "commands": [
       {
-        "command": "compomaker.helloWorld",
-        "title": "Hello World"
+        "command": "makeComponent",
+        "title": "Make Component"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "makeComponent",
+          "group": "navigation",
+          "when": "explorerResourceIsFolder"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
