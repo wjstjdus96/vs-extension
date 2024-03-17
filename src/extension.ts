@@ -1,26 +1,62 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
+import { mainTemplate } from "./template/main";
+import { styleTemplate } from "./template/style";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  const commandFunc = async (uri: any) => {
+    const fp = uri.fsPath;
+    const component = await vscode.window.showInputBox({
+      placeHolder: "입력형식->컴포넌트명 스타일링도구(st/sc)",
+      validateInput: (str: string) => {
+        if (!str) {
+          return "컴포넌트명이 입력되지 않았습니다";
+        }
+        return undefined;
+      },
+    });
+    const getStylingFile = (name: string, type: string) => {
+      if (type == "st") return `${name}.styled.ts`;
+      if (type == "sc") return `${name}.module.scss`;
+      return "";
+    };
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "compomaker" is now active!');
+    if (component) {
+      const [componentName, componentStyle] = component?.split(" ");
+      const componentPath = path.join(fp, componentName);
+      const stylingFile = getStylingFile(componentName, componentStyle);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('compomaker.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from ComPoMaker!');
-	});
+      if (fs.existsSync(componentPath)) {
+        vscode.window.showInformationMessage(
+          "컴포넌트 폴더 생성에 실패하였습니다."
+        );
+      } else if (componentStyle != "st" && componentStyle != "sc") {
+        vscode.window.showInformationMessage(
+          "올바르지 않은 스타일링 도구입니다."
+        );
+      } else {
+        fs.mkdirSync(componentPath);
 
-	context.subscriptions.push(disposable);
+        const indexFilePath = path.join(componentPath, `${componentName}.tsx`);
+        const styleFilePath = path.join(componentPath, `${stylingFile}`);
+
+        fs.writeFileSync(
+          indexFilePath,
+          mainTemplate(componentName, stylingFile)
+        );
+        fs.writeFileSync(styleFilePath, styleTemplate(componentStyle));
+
+        vscode.window.showInformationMessage("컴포넌트 폴더가 생성되었습니다.");
+      }
+    }
+  };
+
+  let disposable = vscode.commands.registerCommand("makeComponent", (uri) => {
+    commandFunc(uri);
+  });
+
+  context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
